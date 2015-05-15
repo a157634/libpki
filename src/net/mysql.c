@@ -198,7 +198,7 @@ char *parse_url_put_query ( URL * url, PKI_MEM *data ) {
 
 	PKI_Free (table);
 
-	if( (ret = PKI_Malloc(buf->size) + 1) == NULL ) {
+	if( (ret = PKI_Malloc(buf->size + 1)) == NULL ) {
 		if( buf ) PKI_MEM_free ( buf );
 		return( NULL );
 	}
@@ -418,6 +418,7 @@ end:
 
 	if (query) PKI_Free (query);
 	db_close ( sql );
+	if(res) mysql_free_result(res);
 
 	return ( sk );
 
@@ -482,6 +483,7 @@ int URL_put_data_mysql_url ( URL *url, PKI_MEM *data ) {
 	}
 
 	if(mysql_query(sql, query ) != 0 ) {
+		PKI_log_err("mysql_query failed: %s", mysql_error(sql));
 		PKI_Free ( query );
 		db_close( sql );
 

@@ -29,9 +29,9 @@ int __pki_error ( const char *file, int line, int err, const char *info, ... ) {
  
 	int i, found;
 	PKI_ERR_ST *curr = NULL;
-	char fmt[2048];
+	//char fmt[2048];
 
-	va_list ap;
+	//va_list ap;
 
 	found = -1;
 	for ( i = 0; i < __libpki_err_size ; i++ ) 
@@ -49,8 +49,11 @@ int __pki_error ( const char *file, int line, int err, const char *info, ... ) {
 			} 
 			else 
 			{
-				snprintf(fmt, sizeof(fmt), "[%s:%d] %s => %s", file, line, curr->descr, info );
-				PKI_log_err_simple( fmt, ap);
+				// remove comment: why don't leave it as it was in the previous release?
+				// <ap> is used uninitialized here!!!
+				PKI_log_err_simple( "[%s:%d] %s => %s", file, line, curr->descr, info );
+				//snprintf(fmt, sizeof(fmt), "[%s:%d] %s => %s", file, line, curr->descr, info );
+				//PKI_log_err_simple( fmt, ap);
 			}
 
 			break;
@@ -65,3 +68,38 @@ int __pki_error ( const char *file, int line, int err, const char *info, ... ) {
 #ifdef HAVE_GCC_PRAGMA_POP
 # pragma GCC diagnostic pop
 #endif
+
+void PKI_strerror(int errnum, char *buf, size_t buflen)
+{
+	if(!buf || buflen <= 0)
+		return;
+
+#if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! _GNU_SOURCE
+	{
+		int _errno = errno;
+
+		/* POSIX variant */
+		if (strerror_r(errnum, buf, buflen) != 0)
+		{
+			errno = _errno;
+			if(buflen >= 4)
+				strncpy(buf, "n/a", buflen);
+			else
+				buf[0] = '\0';
+		}
+	}
+#else
+	{
+		char *err_str;
+
+		/* GNU libc strerror_r is non-portable. */
+		err_str = strerror_r(errnum, buf, buflen);
+		if (err_str != buf)
+		{
+			strncpy(buf, err_str, buflen);
+			buf[buflen - 1] = '\0';
+		}
+	}
+#endif
+}
+

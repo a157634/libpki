@@ -93,7 +93,39 @@ void PKI_X509_free ( PKI_X509 *x ) {
 	if (x->value)
 	{
 		if (x->cb->free)
+		{
+			if (x->type == PKI_DATATYPE_X509_KEYPAIR)
+			{
+				switch(EVP_PKEY_type(((EVP_PKEY *)x->value)->type))
+				{
+					case EVP_PKEY_RSA:
+					{
+						CK_OBJECT_HANDLE *pubKey = NULL;
+						CK_OBJECT_HANDLE *privKey = NULL;
+						RSA *rsa = EVP_PKEY_get1_RSA( (EVP_PKEY *) x->value );
+
+						if(rsa == NULL )
+							break;
+
+						/* Retrieves the privkey object handler */
+						if((privKey = (CK_OBJECT_HANDLE *) RSA_get_ex_data (rsa, KEYPAIR_PRIVKEY_HANDLER_IDX)) == NULL )
+							PKI_log_debug ("PKI_X509_free()::Can't get privKey Handle");
+						else
+							PKI_Free(privKey);
+
+						/* Retrieves the pubkey object handler */
+						if((pubKey = (CK_OBJECT_HANDLE *) RSA_get_ex_data (rsa, KEYPAIR_PUBKEY_HANDLER_IDX)) == NULL )
+							PKI_log_debug ("PKI_X509_free()::Can't get pubKey Handle");
+						else
+							PKI_Free(pubKey);
+						RSA_free(rsa);
+					}
+					default:
+						break;
+				}
+			}
 			x->cb->free(x->value);
+		}
 		else
 			PKI_Free(x->value);
 	}

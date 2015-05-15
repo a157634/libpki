@@ -220,6 +220,44 @@ void PKI_log( int level, const char *fmt, ... ) {
 	return;
 }
 
+/*! \brief Add an hex dump in the Debug log */
+
+void PKI_log_hexdump(int level, char *p_txt, int len, void *p_data)
+{
+    int     a;
+    char    *x;
+    char    *dt;
+    int     adr=0;
+    char    buff1[40];
+    char    buff2[20];
+    static  char    hex[]="0123456789abcdef";
+
+    if(p_txt != NULL) PKI_log(level, "%s:\n", p_txt);
+    dt=(char *)p_data;
+    while(len>0) {
+        x=buff1;
+        for(a=0;a<16 && a<len;a++) {
+            if((a&3)==0) *x++ = ' ';
+            if((a&7)==0) *x++ = ' ';
+            *x++ = hex[(dt[a]>>4)&15];
+            *x++ = hex[dt[a]&15];
+        }
+        *x=0;
+        x=buff2;
+        for(a=0;a<16 && a<len;a++) {
+          if(dt[a]>' ' && dt[a]<0x7f)
+            *x++ = dt[a];
+          else
+            *x++ = ' ';
+        }
+        *x=0;
+        PKI_log(level, "%6x%-38s |%-16s|\n", adr, buff1, buff2);
+        len-=16;
+        dt+=16;
+        adr+=16;
+    }
+}
+
 /*! \brief Add an entry in the Debug log */
 
 void PKI_log_debug_simple( const char *fmt, ... ) {
@@ -234,7 +272,7 @@ void PKI_log_debug_simple( const char *fmt, ... ) {
 	pthread_mutex_lock( &log_res_mutex );
 
 	va_start (ap, fmt);
-	if( _log_st.add ) _log_st.add ( PKI_LOG_INFO, fmt, ap );
+	if( _log_st.add ) _log_st.add ( PKI_LOG_DEBUG, fmt, ap );
 	va_end (ap);
 
 	pthread_mutex_unlock( &log_res_mutex );

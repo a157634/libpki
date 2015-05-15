@@ -125,8 +125,11 @@ int PKI_SOCKET_connect ( PKI_SOCKET *sock, URL *url, int timeout ) {
 	}
 	else
 	{
+		char err_str[128];
+
+		PKI_strerror ( errno, err_str, sizeof(err_str));
 		PKI_log_err ( "Can not connect to %s:%d (%s)",
-			url->addr, url->port, strerror (errno));
+			url->addr, url->port, err_str);
 		return PKI_ERR;
 	}
 

@@ -1055,7 +1055,7 @@ PKI_CONFIG_STACK * PKI_CONFIG_load_dir ( char *dir, PKI_CONFIG_STACK *sk ) {
 	if( found == 1 ) {
 		return (ret);
 	} else {
-		PKI_STACK_CONFIG_free( ret );
+		PKI_STACK_CONFIG_free_all( ret );
 		PKI_log_debug("PKI_CONFIG_load_dir() Failed!\n" );
 		return ( NULL );
 	}

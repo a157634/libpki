@@ -586,6 +586,7 @@ PKI_log_debug("[2] is hardware token ? %s", (((tk->type != HSM_TYPE_SOFTWARE) &&
 			if ((tk->hsm = HSM_new ( buff, hsm_name )) == NULL)
 			{
 				PKI_ERROR(PKI_ERR_HSM_INIT, hsm_name);
+				if (hsm_name) PKI_Free(hsm_name);
 				if (tmp_s) PKI_Free(tmp_s);
 
 				// return PKI_ERROR ( PKI_ERR_HSM_INIT, hsm_name );
@@ -597,6 +598,7 @@ PKI_log_debug("[2] is hardware token ? %s", (((tk->type != HSM_TYPE_SOFTWARE) &&
 			if ((tk->hsm = HSM_new( NULL, hsm_name)) == NULL)
 			{
 				PKI_ERROR(PKI_ERR_HSM_INIT, hsm_name);
+				if (hsm_name) PKI_Free(hsm_name);
 				if (tmp_s) PKI_Free(tmp_s);
 				goto end;
 			}
@@ -608,6 +610,7 @@ PKI_log_debug("[2] is hardware token ? %s", (((tk->type != HSM_TYPE_SOFTWARE) &&
 			" entry found in token config (%s)", tmp_s, config_file);
 	}
 
+	if (hsm_name) PKI_Free ( hsm_name );
 	if (tmp_s) PKI_Free ( tmp_s );
 	tmp_s = NULL;
 
@@ -706,8 +709,18 @@ PKI_log_debug("[2] is hardware token ? %s", (((tk->type != HSM_TYPE_SOFTWARE) &&
 		if (tk->algor) PKI_ALGOR_free(tk->algor);
 
 		// Assign the algorithm from the certificate
-		alg = PKI_X509_CERT_get_data(tk->cert, PKI_X509_DATA_ALGORITHM);
-		if (alg) PKI_TOKEN_set_algor(tk, PKI_ALGOR_get_id(alg));
+		if ((alg = PKI_X509_CERT_get_data(tk->cert, PKI_X509_DATA_ALGORITHM)) == NULL)
+		{
+			PKI_Free(tmp_s);
+			PKI_ERROR(PKI_ERR_TOKEN_GET_ALGOR, NULL);
+			goto end;
+		} 
+
+		if (PKI_TOKEN_set_algor(tk, PKI_ALGOR_get_id(alg)) != PKI_OK)
+		{
+			PKI_Free(tmp_s);
+			goto end;
+		} 
 
 		// tk->algor = PKI_X509_CERT_get_data(tk->cert, PKI_X509_DATA_ALGORITHM);
 	

@@ -192,6 +192,16 @@ int PKI_MEM_grow( PKI_MEM *buf, size_t data_size )
 	{
 		new_size = buf->size + data_size;
 		buf->data = realloc(buf->data, new_size);
+
+		if (!buf->data)
+		{
+			PKI_ERROR(PKI_ERR_MEMORY_ALLOC, NULL);
+			return (PKI_ERR);
+		}
+
+		// zeroize also the memory (like PKI_Malloc does)
+		memset(buf->data + buf->size, 0, data_size);
+
 		buf->size = new_size;
 	}
 
@@ -513,11 +523,9 @@ PKI_MEM *PKI_MEM_get_b64_decoded(PKI_MEM *mem, int withNewLines)
 	PKI_IO *b64 = NULL;
 	PKI_IO *bio = NULL;
 
-	int i = 0;
 	int n = 0;
 
 	char buf[1024];
-	unsigned char *tmp_ptr;
 
 	if (!(b64 = BIO_new(BIO_f_base64()))) return NULL;
 	if (withNewLines <= 0) BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
@@ -537,7 +545,7 @@ PKI_MEM *PKI_MEM_get_b64_decoded(PKI_MEM *mem, int withNewLines)
 
 	while ((n = BIO_read(b64, buf, sizeof(buf))) > 0)
 	{
-		PKI_MEM_add(decoded, buf, n);
+		PKI_MEM_add(decoded, buf, (size_t)n);
 	}
 	BIO_free_all(b64);
 
@@ -590,7 +598,7 @@ PKI_MEM *PKI_MEM_get_url_encoded(PKI_MEM *mem, int skipNewLines)
 		else
 		{
 			// PKI_MEM_add ( encoded, (char *) &(mem->data[i]), 1);
-			enc_buf[enc_idx++] = mem->data[i];
+			enc_buf[enc_idx++] = (char)mem->data[i];
 		}
 
 		// Let's check if it is time to move the buffer contents into the
@@ -598,14 +606,14 @@ PKI_MEM *PKI_MEM_get_url_encoded(PKI_MEM *mem, int skipNewLines)
 		// index
 		if (enc_idx >= sizeof(enc_buf) - 4)
 		{
-			PKI_MEM_add(encoded, enc_buf, enc_idx);
+			PKI_MEM_add(encoded, enc_buf, (size_t)enc_idx);
 			enc_idx = 0;
 		}
 	}
 
 	// If there is something left in the buffer that needs to be added
 	// we add it
-	if (enc_idx > 0) PKI_MEM_add(encoded, enc_buf, enc_idx);
+	if (enc_idx > 0) PKI_MEM_add(encoded, enc_buf, (size_t)enc_idx);
 
 	// Let's now return the encoded PKI_MEM
 	return encoded;
@@ -620,10 +628,10 @@ PKI_MEM *PKI_MEM_get_url_encoded(PKI_MEM *mem, int skipNewLines)
 PKI_MEM *PKI_MEM_get_url_decoded(PKI_MEM *mem)
 {
 	PKI_MEM *decoded = NULL;
-	ssize_t data_size = 0;
 	unsigned char *data = NULL;
+	unsigned char *tmp_buf = NULL;
 
-	int i = 0;
+	unsigned int i = 0;
 	int enc_idx = 0;
 
 	if(!mem || !mem->data || (mem->size == 0) )
@@ -640,13 +648,22 @@ PKI_MEM *PKI_MEM_get_url_decoded(PKI_MEM *mem)
 		return NULL;
 	}
 
+	// We have an off by one error within sscanf - therefore copy the input data
+	// to a seperated buffer
+	if ((tmp_buf = PKI_Malloc(mem->size + 1)) == NULL)
+	{
+		PKI_ERROR(PKI_ERR_MEMORY_ALLOC, NULL);
+		return NULL;
+	}
+	memcpy(tmp_buf, mem->data, mem->size);
+
 	// Let's do the decoding
 	for( i = 0; i < mem->size; i++ )
 	{
 		int p;
 		unsigned char k;
 
-		if (sscanf((const char *)&mem->data[i], "%%%2x", &p) > 0)
+		if (sscanf((const char *)&tmp_buf[i], "%%%2x", &p) > 0)
 		{
 			k = (unsigned char) p;
 			data[enc_idx++] = k;
@@ -654,12 +671,12 @@ PKI_MEM *PKI_MEM_get_url_decoded(PKI_MEM *mem)
 		}
 		else
 		{
-			data[enc_idx++] = mem->data[i];
+			data[enc_idx++] = tmp_buf[i];
 		}
 	}
 
 	// Allocates the new PKI_MEM for the decoding operations
-	if((decoded = PKI_MEM_new_data(enc_idx, data)) == NULL)
+	if((decoded = PKI_MEM_new_data((size_t)enc_idx, data)) == NULL)
 	{
 		PKI_Free(data);
 		PKI_ERROR(PKI_ERR_MEMORY_ALLOC, NULL);
@@ -668,6 +685,7 @@ PKI_MEM *PKI_MEM_get_url_decoded(PKI_MEM *mem)
 
 	// Free the allocated memory
 	PKI_Free(data);
+	PKI_Free(tmp_buf);
 
 	// Returns the newly allocated url-decoded PKI_MEM
 	return decoded;

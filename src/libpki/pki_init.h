@@ -7,6 +7,7 @@
 #define PKI_STATUS_INIT					1
 
 int PKI_init_all( void );
+void PKI_final_thread( void );
 void PKI_final_all ( void );
 
 int PKI_get_init_status ( void );

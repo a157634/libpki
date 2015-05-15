@@ -179,20 +179,30 @@ int PKI_X509_OCSP_RESP_add ( PKI_X509_OCSP_RESP *resp,
 	if (thisUpdate == NULL )
 	{
 		myThisUpdate = X509_gmtime_adj(NULL,0);
-	}
-	else
-	{
-		myThisUpdate = PKI_TIME_dup(thisUpdate);
-	}
 
-	if((single = OCSP_basic_add1_status(r->bs, cid,
-			status, reason, revokeTime, myThisUpdate, nextUpdate))== NULL)
-	{
-		PKI_log_err ("Can not create basic entry!");
-		return ( PKI_ERR );
-	}
+		if(!myThisUpdate)
+			return ( PKI_ERR );
 
-	if (myThisUpdate) PKI_TIME_free(myThisUpdate);
+		single = OCSP_basic_add1_status(r->bs, cid, status, reason, revokeTime,
+						myThisUpdate, nextUpdate);
+
+		PKI_TIME_free(myThisUpdate);
+
+		if(!single)
+    {
+			PKI_log_err ("Can not create basic entry for response!");
+			return ( PKI_ERR );
+		}
+	}
+  else
+  {
+		if((single = OCSP_basic_add1_status(r->bs, cid,
+			status, reason, revokeTime, thisUpdate, nextUpdate))== NULL)
+    {
+			PKI_log_err ("Can not create basic entry for response!");
+			return ( PKI_ERR );
+		}
+	}
 
 	if (invalidityDate)
 	{

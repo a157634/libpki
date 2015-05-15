@@ -38,7 +38,6 @@ int PKI_RWLOCK_init ( PKI_RWLOCK *l ) {
 	pthread_rwlock_init(l, NULL );
 # else
   pthread_mutex_init(&l->lock_mutex, NULL);
-  pthread_mutex_init(&l->data_mutex, NULL);
   pthread_cond_init(&l->cond_var, NULL);
 
   l->n_readers = 0;
@@ -88,19 +87,8 @@ int PKI_RWLOCK_read_lock ( PKI_RWLOCK *l ) {
 		pthread_cond_wait(&l->cond_var, &l->lock_mutex);
 	}
 
-  if (l->n_readers == 0)
-  {
-    pthread_mutex_unlock(&l->lock_mutex);
-    pthread_mutex_lock(&l->data_mutex);
-    pthread_mutex_lock(&l->lock_mutex);
-    l->n_readers++;
-    pthread_mutex_unlock(&l->lock_mutex);
-  }
-  else if (l->n_readers > 0)
-  {
-    l->n_readers++;
-    pthread_mutex_unlock(&l->lock_mutex);
-  }
+  l->n_readers++;
+  pthread_mutex_unlock(&l->lock_mutex);
 # endif /* HAVE_PTHREAD_RWLOCK */
 #endif
 	return PKI_OK;
@@ -121,13 +109,10 @@ int PKI_RWLOCK_write_lock ( PKI_RWLOCK *l ) {
   {
     pthread_cond_wait(&l->cond_var, &l->lock_mutex);
   }
-  pthread_mutex_unlock(&l->lock_mutex);
 
-  pthread_mutex_lock(&l->data_mutex);
-  // pthread_mutex_lock(&l->lock_mutex);
   l->n_writers_waiting--;
-  // l->n_writers--;
   l->n_writers++;
+
   pthread_mutex_unlock(&l->lock_mutex);
 
 # endif /* HAVE_PTHREAD_RWLOCK */
@@ -199,7 +184,6 @@ int PKI_RWLOCK_release_read ( PKI_RWLOCK *l ) {
 # else
   pthread_mutex_lock(&l->lock_mutex);
   l->n_readers--;
-  if (l->n_readers == 0) pthread_mutex_unlock(&l->data_mutex);
   pthread_mutex_unlock(&l->lock_mutex);
   pthread_cond_signal(&l->cond_var);
 # endif
@@ -218,7 +202,6 @@ int PKI_RWLOCK_release_write ( PKI_RWLOCK *l ) {
 # else
   pthread_mutex_lock(&l->lock_mutex);
   l->n_writers--;
-  if (l->n_writers == 0) pthread_mutex_unlock(&l->data_mutex);
   pthread_mutex_unlock(&l->lock_mutex);
   pthread_cond_signal(&l->cond_var);
 # endif

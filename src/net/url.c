@@ -185,11 +185,14 @@ PKI_MEM_STACK *URL_get_data_file( URL *url, ssize_t size ) {
 	PKI_MEM * obj = NULL;
 	off_t file_size = 0;
 	int fd = 0;
+	char err_str[128];
 
 	if( !url ) return (NULL);
 	if( url->proto != URI_PROTO_FILE ) return (NULL);
 
 	if((fd = open( url->addr, O_RDONLY)) == -1 ) {
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log_debug( "URL_get_data_file(): open file %s failed: [%d] %s", url->addr, errno, err_str);
 		return (NULL);
 	}
 
@@ -426,13 +429,15 @@ int URL_put_data ( char *url_s, PKI_MEM *data, char *contType,
 int URL_put_data_fd ( URL *url, PKI_MEM *data ) {
 
 	int fd = 0;
+	char err_str[128];
 
 	if( !url || !data || url->port < 1 ) return ( PKI_ERR );
 
 	fd = url->port;
 
 	if(_Write( fd, data->data, data->size ) < 0 ) {
-		PKI_ERROR(PKI_ERR_GENERAL, strerror(errno));
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_ERROR(PKI_ERR_GENERAL, err_str);
 		return ( PKI_ERR );
 	}
 
@@ -873,14 +878,12 @@ URL *URL_new ( char *url_s ) {
 
 					if( (tmp_s5 = strchr(tmp_s3, ')')) 
 								== NULL) {
-						URL_free( ret );
-						return(NULL);
+						goto err;
 					}
 					tmp_s3++;
 					tmp_s6 = strchr(tmp_s3, '=');
 					if( tmp_s6 > tmp_s5 ) {
-						URL_free( ret );
-						return(NULL);
+						goto err;
 					}
 					tmp_s6 = (char *) malloc ( tmp_s5 - tmp_s3+1);
 					memset( tmp_s6, 0, tmp_s5 - tmp_s3 + 1);
@@ -1026,14 +1029,12 @@ URL *URL_new ( char *url_s ) {
 
 					if( (tmp_s5 = strchr(tmp_s3, ')')) 
 								== NULL) {
-						URL_free( ret );
-						return(NULL);
+						goto err;
 					}
 					tmp_s3++;
 					tmp_s6 = strchr(tmp_s3, '=');
 					if( tmp_s6 > tmp_s5 ) {
-						URL_free( ret );
-						return(NULL);
+						goto err;
 					}
 					tmp_s6 = (char *) malloc ( tmp_s5 - tmp_s3+1);
 					memset( tmp_s6, 0, tmp_s5 - tmp_s3 + 1);
@@ -1196,7 +1197,7 @@ URL *URL_new ( char *url_s ) {
 				tmp_s2 = strchr( tmp_s, ':' );
 
 				if( !tmp_s2 || (tmp_s3 < tmp_s2)) {
-					return (NULL);
+					goto err;
 				}
 				len = (int) ( (long) tmp_s2 - (long) tmp_s );
 				ret->usr = (char *) malloc (len+1);
@@ -1231,8 +1232,7 @@ URL *URL_new ( char *url_s ) {
 			ret->port = atoi( tmp_s );
 			if( ret->port == 0 ) {
 				Error in parsing the port number!
-				URL_free ( ret );
-				return(NULL);
+				goto err;
 			}
 
 			if( (tmp_s2 = strchr( tmp_s, '/' )) != NULL ) {

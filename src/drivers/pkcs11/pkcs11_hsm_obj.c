@@ -494,7 +494,7 @@ PKI_X509_STACK *HSM_PKCS11_KEYPAIR_get_url( URL *url,
 
 	/* Login into the device - do nothing if we are already logged in */
 	/*
-	if(( HSM_PKCS11_login ( driver, cred )) == PKI_ERR ) {
+	if(( HSM_PKCS11_login ( hsm, cred )) == PKI_ERR ) {
 		PKI_log_debug("HSM_PKCS11_KEYPAIR_get_url()::ERROR, can not "
 					"login to device!");
 		return ( NULL );
@@ -592,14 +592,14 @@ PKI_X509_STACK *HSM_PKCS11_KEYPAIR_get_url( URL *url,
 		}
 		
 		/* Let's get the Attributes from the Keypair and store into the
-        	   key's pointer */
-        	RSA_set_method( rsa, HSM_PKCS11_get_rsa_method());
-        	rsa->flags |= RSA_FLAG_SIGN_VER;
+		   key's pointer */
+		RSA_set_method( rsa, HSM_PKCS11_get_rsa_method());
+		rsa->flags |= RSA_FLAG_SIGN_VER;
 
-        	/* Push the priv and pub key handlers to the rsa->ex_data */
-        	RSA_set_ex_data( rsa, KEYPAIR_DRIVER_HANDLER_IDX, hsm );
-        	RSA_set_ex_data( rsa, KEYPAIR_PRIVKEY_HANDLER_IDX, privKey );
-        	RSA_set_ex_data( rsa, KEYPAIR_PUBKEY_HANDLER_IDX, pubKey );
+		/* Push the priv and pub key handlers to the rsa->ex_data */
+		RSA_set_ex_data( rsa, KEYPAIR_DRIVER_HANDLER_IDX, hsm );
+		RSA_set_ex_data( rsa, KEYPAIR_PRIVKEY_HANDLER_IDX, privKey );
+		RSA_set_ex_data( rsa, KEYPAIR_PUBKEY_HANDLER_IDX, pubKey );
 
 		if((val = (PKI_X509_KEYPAIR_VALUE *) EVP_PKEY_new()) == NULL ) {
 			PKI_log_debug ( "Memory Error");
@@ -644,7 +644,7 @@ PKI_X509_STACK *HSM_PKCS11_KEYPAIR_get_url( URL *url,
 
 	PKI_log_debug( "HSM_PKCS11_KEYPAIR_get_url()::Keypair loaded success!");
 
-        return ( ret_sk );
+	return ( ret_sk );
 }
 
 /*
@@ -655,11 +655,11 @@ PKI_STACK * HSM_PKCS11_KEYPAIR_wrap_url ( URL *url, PKI_CRED *cred,
 
 	if( !url ) return ( NULL );
 
-	if(( key_sk = HSM_PKCS11_KEYPAIR_get_url( url, cred, driver )) == NULL){
+	if(( key_sk = HSM_PKCS11_KEYPAIR_get_url( url, cred, hsm )) == NULL){
 		return ( NULL );
 	}
 
-	return ( HSM_PKCS11_KEYPAIR_STACK_wrap ( key_sk, cred, driver ) );
+	return ( HSM_PKCS11_KEYPAIR_STACK_wrap ( key_sk, cred, hsm ) );
 }
 
 PKI_STACK * HSM_PKCS11_KEYPAIR_STACK_wrap ( PKI_KEYPAIR_STACK *sk, 
@@ -770,7 +770,7 @@ PKI_X509_STACK *HSM_PKCS11_STACK_get_url( PKI_DATATYPE type, URL *url,
 	}
 
 	if ((lib = _hsm_get_pkcs11_handler ( hsm )) == NULL ) {
-		PKI_log_debug ("HSM_PKCS11_KEYPAIR_get_url()::No handler");
+		PKI_log_debug ("HSM_PKCS11_STACK_get_url()::No handler");
 		return NULL;
 	}
 
@@ -843,7 +843,7 @@ PKI_X509_STACK *HSM_PKCS11_STACK_get_url( PKI_DATATYPE type, URL *url,
 	}
 
 	idx = 0;
-	HSM_PKCS11_set_attr_int(CKA_CLASS,(int) objClass,&templ[idx++]);
+	HSM_PKCS11_set_attr_int(CKA_CLASS, objClass, &templ[idx++]);
 	HSM_PKCS11_set_attr_sn(CKA_LABEL, myLabel, strlen(myLabel), 
 							&templ[idx++]);	
 	HSM_PKCS11_set_attr_sn(CKA_APPLICATION, myLabel, strlen(myLabel), 

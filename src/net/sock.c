@@ -17,9 +17,14 @@ extern int h_errno;
 
 int _Socket (int family, int type, int protocol) {
 	int n;
+	char err_str[128];
+
 	if ( (n = socket(family,type,protocol)) < 0)
-		PKI_log( PKI_LOG_ERR, "Can not Init Socket (%s)",
-			hstrerror(h_errno));
+	{
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log( PKI_LOG_ERR, "Can not initialize socket: [%d] %s", errno, err_str);
+	}
+
 	return n;
 }
 
@@ -29,6 +34,7 @@ int _Listen (char *hostname, int port, PKI_NET_SOCK_TYPE type) {
 	int fd = 0;
 	int reuse_addr = 1;
 	int ret = 0;
+	char err_str[128];
 
 	struct addrinfo *res, *rp;
 	struct addrinfo hints;
@@ -72,8 +78,8 @@ int _Listen (char *hostname, int port, PKI_NET_SOCK_TYPE type) {
 
 		if(setsockopt(fd, SOL_SOCKET,  SO_REUSEADDR,  &reuse_addr, 
 					sizeof(reuse_addr)) == -1 ) {
-			// PKI_log( PKI_LOG_ERR, "Can not Set Socket Options [%s]",
-			// 	hstrerror(h_errno));
+			PKI_strerror ( errno, err_str, sizeof(err_str));
+			PKI_log( PKI_LOG_ERR, "Can not set socket option (SO_REUSEADDR): [%d] %s", errno, err_str);
 			close(fd);
 			continue;
 		}
@@ -90,8 +96,8 @@ int _Listen (char *hostname, int port, PKI_NET_SOCK_TYPE type) {
 
 	if (bind(fd, rp->ai_addr, rp->ai_addrlen) == -1 )
 	{
-		PKI_log_err("Can not bind to %s:%d (%s)", hostname, port,
-			hstrerror(h_errno));
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log_err("Can not bind to %s:%d [%d] %s", hostname, port, errno, err_str);
 		close ( fd );
 		freeaddrinfo ( res );
 		return ( -1 );
@@ -105,7 +111,8 @@ int _Listen (char *hostname, int port, PKI_NET_SOCK_TYPE type) {
 	/* Here we listen on the fd */
 	if (listen(fd, LISTENQ) == -1)
 	{
-		PKI_log_err("Can not listen to fd (%s)", hstrerror(h_errno));
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log_err("Can not listen to socket: [%d] %s", errno, err_str);
 		close ( fd );
 		return(-1);
 	}
@@ -140,10 +147,9 @@ again:
 		if (INTERRUPTED_BY_SIGNAL)
 			goto again;
 
-		PKI_log(PKI_LOG_ERR,"[%d:%ld:%d] Error while (ACCEPT) [%s:%s]",
-			n, h_errno, errno, hstrerror( h_errno ), 
-				strerror(errno));
-  	}
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log(PKI_LOG_ERR,"Error while (ACCEPT): [%d] %s]", errno, err_str);
+	}
 	return(n);
 }
 */
@@ -151,6 +157,7 @@ again:
 ssize_t _Read (int fd, void *bufptr, size_t nbytes) {
 
 	ssize_t n;
+	char err_str[128];
 
 again:
 	if ((n = read(fd,bufptr,nbytes)) < 0)
@@ -161,8 +168,8 @@ again:
 		}
 		else
 		{
-			PKI_log(PKI_LOG_ERR, "Socket Read failed [%d:%s]",
-					h_errno, hstrerror(h_errno));
+			PKI_strerror ( errno, err_str, sizeof(err_str));
+			PKI_log(PKI_LOG_ERR, "Socket read failed [%d:%s]", errno, err_str);
 		}
 	}
 	return(n);
@@ -171,6 +178,7 @@ again:
 ssize_t _Write (int fd, void *bufptr, size_t nbytes) {
 
 	ssize_t n;
+	char err_str[128];
 
 again:
 	if ((n = write(fd,bufptr,nbytes)) < 0)
@@ -181,53 +189,68 @@ again:
 		}
 		else
 		{
-			PKI_log_err( "Socket Write failed [%d:%s]!", h_errno, hstrerror(h_errno));
+			PKI_strerror ( errno, err_str, sizeof(err_str));
+			PKI_log_err( "Socket write failed [%d:%s]!", errno, err_str);
 		}
 	}
 	return(n);
 }
 
 int _Select (int maxfdp1, fd_set *readset, fd_set *writeset, 
-			fd_set *exceptset, struct timeval *timeout) {
-
+			fd_set *exceptset, struct timeval *timeout)
+{
 	int n;
+	char err_str[128];
+
 again:
 	if ( (n = select (maxfdp1, readset, writeset, 
-				exceptset, timeout)) < 0) {
+				exceptset, timeout)) < 0)
+	{
 		if (INTERRUPTED_BY_SIGNAL)
 			goto again;
-		else
-			PKI_log( PKI_LOG_ERR, "Select failed!");
-  	}
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log( PKI_LOG_ERR, "Select failed: [%d] %s", errno, err_str);
+	}
 	return(n);
 }
 
 int _Connect (int sockfd, const SA *srvaddr, socklen_t addrlen)
 {
+	char err_str[128];
+
 	if (connect(sockfd, srvaddr, addrlen) != 0)
 	{
-		PKI_log(PKI_LOG_ERR, "Socket Connect failed (%s)!", 
-			hstrerror(h_errno));
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log(PKI_LOG_ERR, "Socket connect failed: [%d] %s", errno, err_str);
 		return(PKI_ERR);
 	}
 	return ( PKI_OK );
 }
 
 
-int _Close (int fd) {
-  	if (close(fd) != 0) {
-		PKI_log(PKI_LOG_ERR, "Socket Close failed (%s)!", 
-			hstrerror(h_errno));
+int _Close (int fd)
+{
+	char err_str[128];
+
+	if (close(fd) != 0)
+	{
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log(PKI_LOG_ERR, "Socket close failed: [%d] %s", errno, err_str);
 		return(0);
 	}
 	return( 1 );
 }
 
 
-void _Shutdown (int fd, int howto) {
+void _Shutdown (int fd, int howto)
+{
+	char err_str[128];
+
 	if (shutdown(fd,howto) != 0)
-		PKI_log(PKI_LOG_ERR, "Socket Shutdown failed (%s)!", 
-			hstrerror(h_errno));
+	{
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log(PKI_LOG_ERR, "Socket Shutdown failed: [%d] %s)", errno, err_str);
+	}
 
 	return;
 }
@@ -248,6 +271,7 @@ int inet_connect ( URL *url ) {
 
 	int sockfd;
 	int ret = 0;
+	char err_str[128];
 
 	struct addrinfo *res, *rp;
 	struct addrinfo hints;
@@ -286,8 +310,8 @@ int inet_connect ( URL *url ) {
 
 	/* try to connect */
 	if(( ret = _Connect(sockfd, rp->ai_addr, rp->ai_addrlen )) == PKI_ERR ) {
-		PKI_log( PKI_LOG_ERR, "Socket _Connect failed (%s)",
-							hstrerror( h_errno ));
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log( PKI_LOG_ERR, "Socket _Connect failed: [%d] %s", errno, err_str);
 
 		_Close ( sockfd );
 		freeaddrinfo ( res );
@@ -349,14 +373,15 @@ int PKI_NET_accept ( int sock, int timeout ) {
 	struct timeval *time_out_pnt = NULL;
 	fd_set          readset;
 	int             sel_ret;
+	char            err_str[128];
 
 	// Initialization
 	len=sizeof( struct sockaddr );
 
 	// Set the nonblocking status
 	if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0) {
-		PKI_log_err("PKI_NET_accept()::Cannot set non-blocking "
-					"socket [%s]", hstrerror( h_errno));
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log_err("PKI_NET_accept()::Cannot set non-blocking socket: [%d] %s", errno, err_str);
 		return -1;
 	}
 
@@ -379,24 +404,19 @@ int PKI_NET_accept ( int sock, int timeout ) {
 
 		sel_ret = select(sock+1, &readset, NULL, NULL, time_out_pnt);
 
-		if (sel_ret == -1 && errno == EINTR) {
-			char buf[512];
-			if(strerror_r ( errno, buf, sizeof(buf)) == 0 ) {
-				PKI_log_debug("Select Recoverable [%s]",
-					buf);
+		if (sel_ret < 0) {
+			PKI_strerror ( errno, err_str, sizeof(err_str));
+			if(errno == EINTR) {
+				PKI_log_debug("Select failed (recoverable): [%d] %s", errno, err_str);
+				continue;
 			} else {
-				PKI_log_debug("Select Recoverable");
-			};
-			continue;
+				PKI_log_debug("Select failed: [%d] %s", errno, err_str);
+				return -1;
+			}
 		}
 
-		if( sel_ret < 0 ) {
-			PKI_log_debug("ERROR, Select %s", strerror(errno));
-			return -1;
-		};
-
 		if( (timeout > 0 ) && ( sel_ret == 0 ) ) {
-			PKI_log_debug("ERROR, Socket connection t-out");
+			PKI_log_err("socket connection timed out after %d seconds", timeout);
 			return -1;
 		};
  
@@ -409,9 +429,8 @@ int PKI_NET_accept ( int sock, int timeout ) {
 					continue;
 				};
 
-				PKI_log(PKI_LOG_ERR,"[%d:%ld:%d] Error while (ACCEPT) [%s:%s]",
-					n, h_errno, errno, hstrerror( h_errno ), 
-					strerror(errno));
+				PKI_strerror ( errno, err_str, sizeof(err_str));
+				PKI_log(PKI_LOG_ERR, "Error while (ACCEPT): [%d] %s]", errno, err_str);
 			}
 			break;
 		}
@@ -448,10 +467,11 @@ ssize_t PKI_NET_read (int fd, void *bufptr, size_t nbytes, int timeout ) {
 	struct timeval *time_out_pnt = NULL;
 	fd_set          readset;
 	int             sel_ret;
+	char            err_str[128];
 	
 	if (fcntl( fd, F_SETFL, O_NONBLOCK) < 0) {
-		PKI_log_err("PKI_NET_accept()::Cannot set non-blocking "
-			"socket [%s]", hstrerror( h_errno));
+		PKI_strerror ( errno, err_str, sizeof(err_str));
+		PKI_log_err("PKI_NET_read()::Cannot set non-blocking socket: [%d] %s", errno, err_str);
 		return -1;
 	}
 
@@ -472,18 +492,19 @@ ssize_t PKI_NET_read (int fd, void *bufptr, size_t nbytes, int timeout ) {
 
 		sel_ret = select(fd+1, &readset, NULL, NULL, time_out_pnt);
 
-		if (sel_ret == -1 && errno == EINTR) {
-			PKI_log_debug("ERROR, Select Recoverable [%s]", strerror(errno));
-			continue;
+		if (sel_ret < 0) {
+			PKI_strerror ( errno, err_str, sizeof(err_str));
+			if(errno == EINTR) {
+				PKI_log_debug("Select failed (recoverable): [%d] %s", errno, err_str);
+				continue;
+			} else {
+				PKI_log_debug("Select failed: [%d] %s", errno, err_str);
+				return -1;
+			}
 		}
 
-		if( sel_ret < 0 ) {
-			PKI_log_debug("ERROR, Select %s", strerror(errno));
-			return -1;
-		};
-
 		if( (timeout > 0 ) && (sel_ret == 0) ) {
-			PKI_log_debug("ERROR, Socket connection t-out");
+			PKI_log_err("PKI_NET_read::socket connection timed out after %d seconds", timeout);
 			return -1;
 		}
 
@@ -497,6 +518,8 @@ ssize_t PKI_NET_read (int fd, void *bufptr, size_t nbytes, int timeout ) {
 					PKI_log_debug("Network error, EWOULDBLOCK");
 					continue;
 				}
+				PKI_strerror ( errno, err_str, sizeof(err_str));
+				PKI_log_err("PKI_NET_read::recv() failed: [%d] %s", errno, err_str);
 				break;
 			} else {
 				//PKI_log_debug("Read %d bytes from socket", n);

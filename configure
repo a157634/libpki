@@ -12132,7 +12132,7 @@ fi
 if [ -f "/etc/issue" ] ; then
    DIST_NAME=`head -n 1 /etc/issue | cut -f 1,1 -d ' '`
 else
-   DIST_NAME=`echo ${build_os} | $EGREP -o [A-Za-z]+`
+   DIST_NAME=`echo ${build_os} | $EGREP -o [A-Za-z]+ | head -n 1`
 fi
 
 
@@ -16789,7 +16789,7 @@ $as_echo "Removed $dir from linking (non-existing dir)" >&6; }
     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Removing duplicate entries for -L${dir}${mybits_install} from libpki_ldflags" >&5
 $as_echo "Removing duplicate entries for -L${dir}${mybits_install} from libpki_ldflags" >&6; }
       libpki_ldflags=`echo $libpki_ldflags | sed -e "s|-L${dir}${mybits_install} ||g"`
-      libpki_ldflags="-L${dir}${mybits_install} $libpki_ldflags"
+      libpki_ldflags="$libpki_ldflags -L${dir}${mybits_install}"
     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Removed duplicate entries for -L$dir${mybits_install} from libpki_ldflags" >&5
 $as_echo "Removed duplicate entries for -L$dir${mybits_install} from libpki_ldflags" >&6; }
     fi
@@ -16858,7 +16858,7 @@ $as_echo "Removed $dir from linking (non-existing dir)" >&6; }
     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Removing duplicate entries for -L${dir}${mybits_install} from my_ldflags" >&5
 $as_echo "Removing duplicate entries for -L${dir}${mybits_install} from my_ldflags" >&6; }
       my_ldflags=`echo $my_ldflags | sed -e "s|-L${dir}${mybits_install} ||g"`
-      my_ldflags="-L${dir}${mybits_install} $my_ldflags"
+      my_ldflags="$my_ldflags -L${dir}${mybits_install}"
     	{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Removed duplicate entries for -L${dir}${mybits_install} from my_ldflags" >&5
 $as_echo "Removed duplicate entries for -L${dir}${mybits_install} from my_ldflags" >&6; }
     fi

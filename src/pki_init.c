@@ -153,6 +153,8 @@ int PKI_init_all( void ) {
 
 	/* Initialize OpenSSL so that it adds all the needed algor and dgst */
 	if( _libpki_init == 0 ) {
+		PKI_log(PKI_LOG_ALWAYS, "OpenCA libpki v%s - loading (%s).", PACKAGE_VERSION, SSLeay_version(SSLEAY_VERSION));
+		PKI_log(PKI_LOG_ALWAYS, "OpenCA libpki adapted by RVE. Version p1.0.3.");
 		X509V3_add_standard_extensions();
 		OpenSSL_add_all_algorithms();
 		OpenSSL_add_all_digests();
@@ -205,6 +207,24 @@ int PKI_init_all( void ) {
 	*/
 
 	return ( PKI_OK );
+}
+
+ /*!
+ * \brief needs to be called before calling pthread_exit() 
+ */
+
+void PKI_final_thread( void ) {
+#if HAVE_MYSQL
+	mysql_thread_end();
+#endif
+
+#if OPENSSL_VERSION_NUMBER < 0x10000000L
+	ERR_remove_state(0);
+#else
+	ERR_remove_thread_state(NULL);
+#endif
+
+  return;
 }
 
 /*!

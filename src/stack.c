@@ -64,7 +64,7 @@ PKI_STACK * PKI_STACK_new( void (*free)())
 	ret->tail = NULL;
 	ret->elements = 0;
 
-	if (ret->free) ret->free = free;
+	if (free) ret->free = free;
 	else ret->free = PKI_Free;
 
 	return(ret);

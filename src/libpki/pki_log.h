@@ -65,6 +65,7 @@ int PKI_log_init ( PKI_LOG_TYPE type, PKI_LOG_LEVEL level, char *resource,
 				PKI_LOG_FLAGS flags, PKI_TOKEN *tk );
 
 void PKI_log( int level, const char *fmt, ... );
+void PKI_log_hexdump(int level, char *p_txt, int len, void *p_data);
 
 /* Macro To Automatically add [__FILE__:__LINE__] to the message */
 #define PKI_log_line(a, b, args...) \

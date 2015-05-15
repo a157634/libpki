@@ -273,4 +273,6 @@ int __pki_error ( const char *file, int line, int err, const char *info, ... );
 #define PKI_ERROR_crypto_get_errno() HSM_get_errno(NULL)
 #define PKI_ERROR_crypto_get_errdesc() HSM_get_errdesc(HSM_get_errno(NULL),NULL)
 
+void PKI_strerror(int errnum, char *buf, size_t buflen);
+
 #endif

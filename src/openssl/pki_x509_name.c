@@ -280,7 +280,7 @@ char *PKI_X509_NAME_get_parsed ( PKI_X509_NAME *name ) {
 		ret = PKI_Malloc ( PKI_MEM_get_size( mem ) + 1 );
 		memcpy( ret, PKI_MEM_get_data(mem), PKI_MEM_get_size (mem));
 		ret[PKI_MEM_get_size (mem)] = '\x0';
-
+		PKI_MEM_free(mem);
 	}
 
 	return( ret );
