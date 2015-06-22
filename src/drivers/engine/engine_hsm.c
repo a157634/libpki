@@ -45,7 +45,7 @@ HSM_CALLBACKS engine_hsm_callbacks = {
 		/* Key Unwrap */
 		NULL,
 		/* Object stack Get Function */
-		NULL, // HSM_ENGINE_OBJSK_get_url,
+		HSM_ENGINE_OBJSK_get_url,
 		/* Object stack Add Function */
 		NULL, /* HSM_ENGINE_KEYPAIR_put_url, */
 		/* Object stack Del Function */
@@ -60,8 +60,8 @@ HSM_CALLBACKS engine_hsm_callbacks = {
 		NULL, /* HSM_ENGINE_SLOT_select */
 		/* Cleans up the current slot */
 		NULL, /* HSM_ENGINE_SLOT_clean */
-		/* Returns the Callbacks */
-		NULL /* HSM_OPENSSL_X509_get_cb */
+		/* Gets X509 Callbacks */
+		HSM_OPENSSL_X509_get_cb
 };
 
 /* Structure for PKI_TOKEN definition */
@@ -211,6 +211,7 @@ HSM *HSM_ENGINE_new ( PKI_CONFIG *conf )
 
 	/* Let's copy the right callbacks to call when needed! */
 	hsm->callbacks = &engine_hsm_callbacks;
+	hsm->config = conf;
 
 	/* Let's get the ID for the HSM */
 	if((engine_id = PKI_CONFIG_get_value( conf, "/hsm/id" )) == NULL ) {
