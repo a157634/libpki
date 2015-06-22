@@ -119,7 +119,7 @@ HSM *HSM_new( char *dir, char *name ) {
 
 	if((conf = PKI_CONFIG_load( url_s )) == NULL ) {
 		PKI_log_debug( "Can not load config from %s", url_s );
-		goto err;
+		goto ret;
 	}
 
 
@@ -127,15 +127,18 @@ HSM *HSM_new( char *dir, char *name ) {
 	   prefix */
 	if((type = PKI_CONFIG_get_value ( conf, "/hsm/type")) == NULL ) {
 		/* No type in the config! */
-		PKI_log_debug("ERROR, No HSM type in the config!");
-		// PKI_CONFIG_free ( conf );
-		// return (NULL);
-		type = "software";
+		PKI_log_debug("ERROR, No HSM type in the config - defaults to software!");
+		if( (type = strdup("software")) == NULL)
+		{
+			PKI_log_err ("Memory Error");
+			goto ret;
+		}
 	}
 
 	if( strcmp_nocase(type,"software") == 0 ) {
 		if((hsm = HSM_OPENSSL_new( conf )) == NULL ) {
 			PKI_log_debug("ERROR, Can not generate software HSM object!");
+			goto ret;
 		} else {
 			hsm->type = HSM_TYPE_SOFTWARE;
 		}
@@ -143,6 +146,7 @@ HSM *HSM_new( char *dir, char *name ) {
 	} else if( strcmp_nocase(type,"engine") == 0 ) {
 		if((hsm = HSM_ENGINE_new( conf )) == NULL ) {
 			PKI_log_debug("ERROR, Can not generate engine HSM object!");
+			goto ret;
 		} else {
 			hsm->type = HSM_TYPE_ENGINE;
 		}
@@ -150,6 +154,7 @@ HSM *HSM_new( char *dir, char *name ) {
 	} else if( strcmp_nocase(type,"pkcs11") == 0 ) {
 		if((hsm = HSM_PKCS11_new( conf )) == NULL ) {
 			PKI_log_debug("ERROR, Can not generate engine HSM object!");
+			goto ret;
 		} else {
 			hsm->type = HSM_TYPE_PKCS11;
 		}
@@ -157,20 +162,14 @@ HSM *HSM_new( char *dir, char *name ) {
 	} else if( strcmp_nocase(type,"kmf") == 0 ) {
 		if((hsm = HSM_KMF_new( conf )) == NULL ) {
 			PKI_log_debug("ERROR, Can not generate kmf HSM object!\n");
+			goto ret;
 		} else {
 			hsm->type = HSM_TYPE_KMF;
 		}
 #endif
 	} else {
 		PKI_log_debug( "Unknown HSM type (%s)", type );
-		PKI_CONFIG_free ( conf );
-		return (NULL);
-	}
-
-	if ( ( hsm != NULL ) && (HSM_init ( hsm ) != PKI_OK) )
-	{
-			HSM_free ( hsm );
-			return NULL;
+		goto ret;
 	}
 
 	// Let' see if we can enforce the FIPS mode (optional, therefore
@@ -185,7 +184,8 @@ HSM *HSM_new( char *dir, char *name ) {
 			{
 				PKI_log_err("Can not create HSM in FIPS mode");
 				HSM_free(hsm);
-				return NULL;
+				hsm = NULL;
+				goto ret;
 			}
 	}
 	else
@@ -193,18 +193,12 @@ HSM *HSM_new( char *dir, char *name ) {
 		PKI_log_debug("HSM created in non-FIPS mode");
 	}
 
-	PKI_CONFIG_free ( conf );
+ret:
+	if (conf) PKI_CONFIG_free ( conf );
 	if (url_s) PKI_Free ( url_s );
 	if (type) PKI_Free(type);
 
 	return (hsm);
-
-err:
-	PKI_CONFIG_free ( conf );
-	if (url_s) PKI_Free ( url_s );
-	if (type) PKI_Free(type);
-
-	return (NULL);
 }
 
 /*! \brief Allocates a new HSM structure and initializes it in FIPS mode
@@ -269,6 +263,7 @@ int HSM_init( HSM *hsm ) {
 	if( !hsm || !hsm->callbacks ) return (PKI_ERR);
 
 	/* Call the init function provided by the hsm itself */
+	PKI_log_debug("Init called for (%s)", hsm->description);
 	if( hsm->callbacks->init )
 	{
 		return (hsm->callbacks->init ( hsm, hsm->config ));
@@ -643,6 +638,8 @@ PKI_MEM *PKI_sign ( PKI_MEM *der, PKI_DIGEST_ALG *alg, PKI_X509_KEYPAIR *key ) {
 
 	// Uses the default algorithm if none was provided
 	if ( !alg ) alg = PKI_DIGEST_ALG_DEFAULT;
+
+	hsm = key->hsm;
 
 	// If no HSM is provided, let's get the default one
 	if (!(hsm && hsm->callbacks && hsm->callbacks->sign))
