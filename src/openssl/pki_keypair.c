@@ -304,24 +304,27 @@ PKI_DIGEST *PKI_X509_KEYPAIR_VALUE_pub_digest ( PKI_X509_KEYPAIR_VALUE *pkey,
 	if(!X509_PUBKEY_set(&xpk, pkey )) {
 		PKI_log_debug("PKI_X509_KEYPAIR_pub_digest()::Error building X509 "
 			"PUBKEY data");
-		return NULL;
+		goto end;
 	}
 	if((key = xpk->public_key ) == NULL ) {
 		PKI_log_debug("PKI_X509_KEYPAIR_pub_digest()::No pubkey found!");
-		return ( NULL );
+		goto end;
 	}
 
 	if( key->length < 1 ) {
 		PKI_log_debug("PKI_X509_KEYPAIR_pub_digest()::Pubkey len is 0!");
-		return ( NULL );
+		goto end;
 	}
 
 	if(( ret = PKI_DIGEST_new( md, key->data, 
 					(size_t) key->length )) == NULL ) {
 		PKI_log_debug("PKI_X509_KEYPAIR_pub_digest()::%s",
 			ERR_error_string( ERR_get_error(), NULL ));
-		return ( NULL );
+		goto end;
 	}
+
+end:
+	if(xpk) X509_PUBKEY_free(xpk);
 
 	return ( ret );
 }
