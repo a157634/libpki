@@ -16253,7 +16253,7 @@ $as_echo "OpenSSL Checking Path: ${library_includes} does not exists!" >&6; }
 
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Searching OpenSSL Version: $library_includes" >&5
 $as_echo "Searching OpenSSL Version: $library_includes" >&6; };
-		ver=`grep "#define SHLIB_VERSION_NUMBER" $library_includes | sed 's/[#_a-zA-Z" ]//g' | sed 's|\.|0|g'`;
+		ver=`grep "#.*define SHLIB_VERSION_NUMBER" $library_includes | sed 's/[#_a-zA-Z" ]//g' | sed 's|\.|0|g'`;
 		my_ver=`echo $_version | sed "s|\.|0|g"`;
 
 		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: Detected Version: $ver (required > $my_ver )" >&5
