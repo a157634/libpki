@@ -37,6 +37,7 @@ char *parse_url_query ( URL * url ) {
 	}
 
 	if((buf = PKI_MEM_new_null()) == NULL ) {
+		PKI_ERROR(PKI_ERR_MEMORY_ALLOC, NULL);
 		return ( NULL );
 	}
 
@@ -84,6 +85,7 @@ char *parse_url_query ( URL * url ) {
 	}
 
 	if( (ret = PKI_Malloc (buf->size+1)) == NULL ) {
+		PKI_ERROR(PKI_ERR_MEMORY_ALLOC, NULL);
 		PKI_MEM_free ( buf );
 		return( NULL );
 	}
@@ -131,6 +133,7 @@ char *parse_url_put_query ( URL * url, PKI_MEM *data ) {
 	}
 
 	if((buf = PKI_MEM_new_null()) == NULL ) {
+		PKI_ERROR(PKI_ERR_MEMORY_ALLOC, NULL);
 		return ( NULL );
 	}
 
@@ -199,6 +202,7 @@ char *parse_url_put_query ( URL * url, PKI_MEM *data ) {
 	PKI_Free (table);
 
 	if( (ret = PKI_Malloc(buf->size + 1)) == NULL ) {
+		PKI_ERROR(PKI_ERR_MEMORY_ALLOC, NULL);
 		if( buf ) PKI_MEM_free ( buf );
 		return( NULL );
 	}
@@ -233,6 +237,7 @@ char *parse_url_table ( URL * url ) {
 	}
 
 	if((ret = PKI_Malloc ( size + 1 )) == NULL ) {
+		PKI_ERROR(PKI_ERR_MEMORY_ALLOC, NULL);
 		return(NULL);
 	}
 
@@ -251,11 +256,13 @@ char *parse_url_dbname ( URL *url ) {
 	if( !url || !url->path ) return (NULL);
 
 	if((tmp_s = strchr( url->path, '/')) == NULL ) {
+		PKI_log_err("Can not parse dbname in URL: %s", url->path);
 		return (NULL);
 	}
 
 	size = (size_t) (tmp_s - url->path);
 	if((ret = PKI_Malloc ( size + 1 )) == NULL ) {
+		PKI_ERROR(PKI_ERR_MEMORY_ALLOC, NULL);
 		return(NULL);
 	}
 
@@ -270,27 +277,28 @@ char *parse_url_dbname ( URL *url ) {
 MYSQL *db_connect ( URL *url ) {
 
 	MYSQL *sql = NULL;
-	char * table = NULL;
 	char * dbname = NULL;
 
 	if( (sql = mysql_init( NULL )) == NULL ) {
+		PKI_log_err("Initializing MySQL failed.");
 		return NULL;
 	}
 
-	dbname = parse_url_dbname ( url );
-	table = parse_url_table ( url );
+	if( (dbname = parse_url_dbname ( url )) == NULL) {
+		return NULL;
+	}
 
 	/* The old mysql_connect is no more supported, it seems! */
 	/* mysql_connect( sql, url->addr, url->usr, url->pwd ); */
 	if((mysql_real_connect(sql, url->addr, url->usr, url->pwd,
 			dbname, (unsigned int) url->port, NULL, 0 )) == NULL ) {
 		if( dbname ) PKI_Free ( dbname );
+		PKI_log_err("Connecting to MySQL DB failed: %s",  mysql_error(sql));
 		db_close( sql );
 		return( NULL );
 	}
 
 	if( dbname ) PKI_Free (dbname);
-	if( table ) PKI_Free (table);
 
 	return( sql );
 
@@ -372,7 +380,12 @@ PKI_MEM_STACK *URL_get_data_mysql_url ( URL *url, ssize_t size ) {
 		PKI_log_err("Can not parse URL query");
 		goto end;
 	}
-	else mysql_query(sql, query);
+
+	if(mysql_query(sql, query ) != 0 )
+	{
+		PKI_log_err("mysql_query failed: %s", mysql_error(sql));
+		goto end;
+	}
 
 	/* Get the Data */
 	if((res = mysql_store_result( sql )) == NULL)
@@ -481,6 +494,8 @@ int URL_put_data_mysql_url ( URL *url, PKI_MEM *data ) {
 		PKI_Free( query );
 		return(PKI_ERR);
 	}
+
+	PKI_log_debug("SQL query: %s", query);
 
 	if(mysql_query(sql, query ) != 0 ) {
 		PKI_log_err("mysql_query failed: %s", mysql_error(sql));
