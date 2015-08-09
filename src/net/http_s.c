@@ -476,8 +476,12 @@ PKI_HTTP *PKI_HTTP_get_message (PKI_SOCKET *sock, int timeout, size_t max_size) 
   // an error and we return the malformed request message
   if (!eoh)
   {
-	  PKI_log_err ( "Read data (so far): %d bytes - Last read: %d bytes", idx, read);
-	  PKI_ERROR(PKI_ERR_URI_READ, NULL);
+	  // Only report when something was read
+	  if(idx != 0 || read != 0)
+	  {
+		  PKI_log_err ( "Read data (so far): %d bytes - Last read: %d bytes", idx, read);
+		  PKI_ERROR(PKI_ERR_URI_READ, NULL);
+	  }
 	  goto err;
   }
 

@@ -744,6 +744,9 @@ PKI_log_debug("[2] is hardware token ? %s", (((tk->type != HSM_TYPE_SOFTWARE) &&
 
 	if ((tmp_s = PKI_CONFIG_get_value(tk->config, "/tokenConfig/otherCerts")) != NULL)
 	{
+		if (tk->otherCerts)
+			PKI_STACK_X509_CERT_free( tk->otherCerts );
+
 		tk->otherCerts = PKI_X509_CERT_STACK_get(tmp_s, tk->cred, tk->hsm );
 		if (tk->otherCerts == NULL) PKI_ERROR(PKI_ERR_TOKEN_OTHERCERTS_LOAD, tmp_s);
 
@@ -752,6 +755,9 @@ PKI_log_debug("[2] is hardware token ? %s", (((tk->type != HSM_TYPE_SOFTWARE) &&
 
 	if ((tmp_s = PKI_CONFIG_get_value(tk->config, "/tokenConfig/trustedCerts")) != NULL)
 	{
+		if (tk->trustedCerts)
+			PKI_STACK_X509_CERT_free( tk->trustedCerts );
+
 		tk->trustedCerts = PKI_X509_CERT_STACK_get(tmp_s, tk->cred, tk->hsm);
 		if (!tk->trustedCerts) PKI_ERROR(PKI_ERR_TOKEN_TRUSTEDCERTS_LOAD, tmp_s);
 		PKI_Free ( tmp_s );

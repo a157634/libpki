@@ -232,6 +232,10 @@ void PKI_log_hexdump(int level, char *p_txt, int len, void *p_data)
     char    buff2[20];
     static  char    hex[]="0123456789abcdef";
 
+
+    if(level == PKI_LOG_DEBUG && (_log_st.flags & PKI_LOG_FLAGS_ENABLE_DEBUG) == 0 )
+      return;
+
     if(p_txt != NULL) PKI_log(level, "%s:\n", p_txt);
     dt=(char *)p_data;
     while(len>0) {
