@@ -154,7 +154,7 @@ int PKI_init_all( void ) {
 	/* Initialize OpenSSL so that it adds all the needed algor and dgst */
 	if( _libpki_init == 0 ) {
 		PKI_log(PKI_LOG_ALWAYS, "OpenCA libpki v%s - loading (%s).", PACKAGE_VERSION, SSLeay_version(SSLEAY_VERSION));
-		PKI_log(PKI_LOG_ALWAYS, "OpenCA libpki adapted by RVE. Version p1.0.5.");
+		PKI_log(PKI_LOG_ALWAYS, "OpenCA libpki adapted by RVE. Version p1.0.5 (11 Aug 2015).");
 		X509V3_add_standard_extensions();
 		OpenSSL_add_all_algorithms();
 		OpenSSL_add_all_digests();

@@ -399,7 +399,7 @@ int PKI_NET_accept ( int sock, int timeout ) {
 		} else {
 			time_out_pnt = &time_out;
 			time_out.tv_sec = timeout;
-        		time_out.tv_usec = 0;
+			time_out.tv_usec = 0;
 		};
 
 		sel_ret = select(sock+1, &readset, NULL, NULL, time_out_pnt);

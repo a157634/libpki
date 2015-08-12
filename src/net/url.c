@@ -42,7 +42,7 @@ URI_PROTOCOL proto_list[] = {
 	{ URI_PROTO_PG, "pg"},
 	{ URI_PROTO_PKCS11, "pkcs11" },
 	{ URI_PROTO_SOCK, "sock" },
-	{ URI_PROTO_SOCK, "dns" },
+	{ URI_PROTO_DNS, "dns" },
 	{ 0, NULL }
 };
 
