@@ -394,10 +394,15 @@ PKI_MEM_STACK *URL_get_data_mysql_url ( URL *url, ssize_t size ) {
 		goto end;
 	}
 
-	if( ((n_rows = (long long) mysql_num_rows( res )) < 1 ) || 
-			((sk = PKI_STACK_MEM_new()) == NULL))
+	if( (n_rows = (long long) mysql_num_rows( res )) < 1 )
 	{
-		PKI_log_err("No returned rows found");
+		PKI_log_debug("No returned rows found");
+		goto end;
+	}
+
+	if( (sk = PKI_STACK_MEM_new()) == NULL)
+	{
+		PKI_ERROR(PKI_ERR_MEMORY_ALLOC, NULL);
 		goto end;
 	}
 
