@@ -2511,7 +2511,7 @@ PKI_TOKEN *PKI_TOKEN_issue_proxy (PKI_TOKEN *tk, char *subject,
 		    			proxySerial, validity, px_tk->req, 
 						proxyProfile_s )) == NULL ) {
                 printf("ERROR, can not issue Proxy Certificate!\n");
-                exit(1);
+                return ( PKI_ERR );
         }
 
 	/* Now We have to copy all the other certs to the new token */
