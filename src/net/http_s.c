@@ -10,6 +10,8 @@
 
 #define HTTP_BUF_SIZE	65535
 
+#define MAX_LOG_TRACE_SIZE	128
+
 /* ----------------------------- AUXILLARY FUNCS ------------------------------ */
 
 
@@ -158,7 +160,6 @@ int __parse_http_header(PKI_HTTP *msg)
   	  else if(sscanf(http_version,"HTTP/%f", &msg->version) < 1)
   	  {
   		  PKI_log_debug("ERROR Parsing HTTP Version");
-  		  PKI_Free(http_version);
   		  PKI_Free(line);
 
   		  return PKI_ERR;
@@ -166,7 +167,7 @@ int __parse_http_header(PKI_HTTP *msg)
     }
     else
     {
-    	PKI_log_err("Unsupported HTTP Method detected (%s)", method);
+    	PKI_log_debug("Unsupported HTTP Method detected (%s)", method);
     	PKI_Free(line);
 
     	return PKI_ERR;
@@ -480,7 +481,10 @@ PKI_HTTP *PKI_HTTP_get_message (PKI_SOCKET *sock, int timeout, size_t max_size) 
 	  if(idx != 0 || read != 0)
 	  {
 		  PKI_log_err ( "Read data (so far): %d bytes - Last read: %d bytes", idx, read);
-		  PKI_ERROR(PKI_ERR_URI_READ, NULL);
+			if(idx > MAX_LOG_TRACE_SIZE)
+				PKI_log_hexdump(PKI_LOG_INFO, "HTTP data read (truncated)", MAX_LOG_TRACE_SIZE, m->data);
+			else
+				PKI_log_hexdump(PKI_LOG_INFO, "HTTP data read", (int) idx, m->data);
 	  }
 	  goto err;
   }

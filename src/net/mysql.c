@@ -278,6 +278,7 @@ MYSQL *db_connect ( URL *url ) {
 
 	MYSQL *sql = NULL;
 	char * dbname = NULL;
+	static int failed = 0;
 
 	if( (sql = mysql_init( NULL )) == NULL ) {
 		PKI_log_err("Initializing MySQL failed.");
@@ -293,10 +294,12 @@ MYSQL *db_connect ( URL *url ) {
 	if((mysql_real_connect(sql, url->addr, url->usr, url->pwd,
 			dbname, (unsigned int) url->port, NULL, 0 )) == NULL ) {
 		if( dbname ) PKI_Free ( dbname );
-		PKI_log_err("Connecting to MySQL DB failed: %s",  mysql_error(sql));
+		if(!failed) PKI_log_err("Connecting to MySQL DB failed: %s",  mysql_error(sql));
 		db_close( sql );
+		failed = 1;
 		return( NULL );
 	}
+	failed = 0;
 
 	if( dbname ) PKI_Free (dbname);
 
